@@ -34,6 +34,13 @@ class Lookup extends Stage
     private $as;
 
     /**
+     * @var array
+     */
+    private $let;
+
+    private $pipeline;
+
+    /**
      * Lookup constructor.
      *
      * @param Builder $builder
@@ -119,18 +126,46 @@ class Lookup extends Stage
         return $this;
     }
 
+    public function let(array $let) : self
+    {
+        $this->let = $let;
+        return $this;
+    }
+
+    public function pipeline($pipeline) : self
+    {
+        if (! is_array($pipeline) && ! $pipeline instanceof Expr) {
+            throw new \InvalidArgumentException(__METHOD__ . ' expects either an aggregation builder or an aggregation stage.');
+        }
+
+        $this->pipeline = $pipeline;
+        return $this;
+    }
+
     /**
      * {@inheritdoc}
      */
     public function getExpression()
     {
-        return [
-            '$lookup' => [
+        if (isset($this->pipeline)) {
+            $pipeline = $this->pipeline instanceof Expr ? $this->pipeline->getExpression() : $this->pipeline;
+            return [
+              '$lookup' => [
+                'from' => $this->from,
+                'let' => $this->let,
+                'pipeline' => $pipeline,
+                'as' => $this->as,
+              ],
+            ];
+        } else {
+            return [
+              '$lookup' => [
                 'from' => $this->from,
                 'localField' => $this->localField,
                 'foreignField' => $this->foreignField,
                 'as' => $this->as,
-            ]
-        ];
+              ],
+            ];
+        }
     }
 }
